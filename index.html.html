@@ -1,0 +1,179 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>📇 Lumis Web Contact Manager</title>
+  <style>
+    body {
+      font-family: 'Segoe UI', sans-serif;
+      background: #f0f2f5;
+      padding: 20px;
+    }
+    h1 {
+      text-align: center;
+      color: #333;
+    }
+    .form, .actions {
+      text-align: center;
+      margin: 20px auto;
+    }
+    input {
+      padding: 8px;
+      margin: 5px;
+      width: 200px;
+    }
+    button {
+      padding: 10px 15px;
+      margin: 5px;
+      cursor: pointer;
+      border: none;
+      color: white;
+      background-color: #2196F3;
+      border-radius: 5px;
+    }
+    button.delete {
+      background-color: #e53935;
+    }
+    table {
+      width: 100%;
+      margin-top: 20px;
+      border-collapse: collapse;
+      background: white;
+    }
+    th, td {
+      border: 1px solid #ccc;
+      padding: 10px;
+      text-align: center;
+    }
+    th {
+      background-color: #2196F3;
+      color: white;
+    }
+  </style>
+</head>
+<body>
+
+<h1>📇 Lumis Web Contact Manager</h1>
+
+<div class="form">
+  <input type="text" id="name" placeholder="Name" />
+  <input type="text" id="phone" placeholder="Phone" />
+  <input type="email" id="email" placeholder="Email" />
+  <button onclick="addContact()">➕ Add</button>
+  <button onclick="voiceInput()">🎙 Voice Input</button>
+</div>
+
+<div class="actions">
+  <button onclick="exportToCSV()">📤 Export CSV</button>
+  <button onclick="clearAll()">🧹 Clear All</button>
+</div>
+
+<table id="contactTable">
+  <thead>
+    <tr>
+      <th>#</th><th>Name</th><th>Phone</th><th>Email</th><th>Delete</th>
+    </tr>
+  </thead>
+  <tbody></tbody>
+</table>
+
+<script>
+  let contacts = JSON.parse(localStorage.getItem("contacts") || "[]");
+
+  function renderContacts() {
+    const tbody = document.querySelector("#contactTable tbody");
+    tbody.innerHTML = "";
+    contacts.forEach((c, i) => {
+      const row = `<tr>
+        <td>${i+1}</td>
+        <td>${c.name}</td>
+        <td>${c.phone}</td>
+        <td>${c.email}</td>
+        <td><button class="delete" onclick="deleteContact(${i})">🗑️</button></td>
+      </tr>`;
+      tbody.innerHTML += row;
+    });
+  }
+
+  function addContact() {
+    const name = document.getElementById("name").value.trim();
+    const phone = document.getElementById("phone").value.trim();
+    const email = document.getElementById("email").value.trim();
+
+    if (!name || !phone) {
+      alert("Name and Phone are required");
+      return;
+    }
+
+    contacts.push({ name, phone, email });
+    localStorage.setItem("contacts", JSON.stringify(contacts));
+    renderContacts();
+
+    document.getElementById("name").value = "";
+    document.getElementById("phone").value = "";
+    document.getElementById("email").value = "";
+  }
+
+  function deleteContact(index) {
+    contacts.splice(index, 1);
+    localStorage.setItem("contacts", JSON.stringify(contacts));
+    renderContacts();
+  }
+
+  function clearAll() {
+    if (confirm("Are you sure to delete all contacts?")) {
+      contacts = [];
+      localStorage.removeItem("contacts");
+      renderContacts();
+    }
+  }
+
+  function exportToCSV() {
+    let csv = "Name,Phone,Email\n";
+    contacts.forEach(c => {
+      csv += `${c.name},${c.phone},${c.email}\n`;
+    });
+
+    const blob = new Blob([csv], { type: "text/csv" });
+    const link = document.createElement("a");
+    link.href = URL.createObjectURL(blob);
+    link.download = "contacts.csv";
+    link.click();
+  }
+
+  function voiceInput() {
+    if (!("webkitSpeechRecognition" in window)) {
+      alert("Voice recognition not supported in this browser.");
+      return;
+    }
+
+    const recognition = new webkitSpeechRecognition();
+    recognition.lang = "en-US";
+    recognition.start();
+
+    recognition.onresult = function(event) {
+      const transcript = event.results[0][0].transcript;
+      // Example: "Name Aman, Phone 9876543210"
+      const nameMatch = transcript.match(/name\s+([a-zA-Z]+)/i);
+      const phoneMatch = transcript.match(/phone\s+(\d{5,15})/i);
+
+      if (nameMatch && phoneMatch) {
+        document.getElementById("name").value = nameMatch[1];
+        document.getElementById("phone").value = phoneMatch[1];
+        document.getElementById("email").value = "";
+        addContact();
+      } else {
+        alert("Please speak clearly like: Name Aman, Phone 9876543210");
+      }
+    };
+
+    recognition.onerror = function() {
+      alert("Voice input failed.");
+    };
+  }
+
+  renderContacts();
+</script>
+
+</body>
+</html>
